@@ -1,4 +1,4 @@
-version: "3.4"
+version: "2.2"
 
 services:
   haveged:
@@ -483,7 +483,5 @@ volumes:
     name: mirror-node-postgres
   minio-data:
     name: minio-data
-  prometheus-data:
-    name: prometheus-data
   grafana-data:
     name: grafana-data
