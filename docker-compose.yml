@@ -216,28 +216,6 @@ services:
         source: mirror-node-postgres
         target: /var/lib/postgresql/data
 
-  grpc:
-    image: "${MIRROR_IMAGE_PREFIX}hedera-mirror-grpc:${MIRROR_IMAGE_TAG}"
-    container_name: mirror-node-grpc
-    restart: unless-stopped
-    mem_swappiness: 0
-    mem_limit: "${MIRROR_GRPC_MEM_LIMIT}"
-    memswap_limit: "${MIRROR_GRPC_MEM_LIMIT}"
-    depends_on:
-      network-node:
-        condition: service_started
-      db:
-        condition: service_started
-    environment:
-      HEDERA_MIRROR_GRPC_DB_HOST: db
-      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/usr/etc/hedera-mirror-grpc/
-    networks:
-      - mirror-node
-    ports:
-      - "5600:5600"
-    volumes:
-      - "${MIRROR_NODE_CONFIG_PATH}/compose-network/mirror-node/application.yml:/usr/etc/hedera-mirror-grpc/application.yml"
-
   importer:
     image: "${MIRROR_IMAGE_PREFIX}hedera-mirror-importer:${MIRROR_IMAGE_TAG}"
     container_name: mirror-node-importer
@@ -275,6 +253,7 @@ services:
       HEDERA_MIRROR_REST_DB_HOST: db
     networks:
       - mirror-node
+      - docker-tests
     ports:
       - "5551:5551"
     restart: unless-stopped
@@ -289,52 +268,6 @@ services:
     environment:
       DOCKER_LOCAL_MIRROR_NODE_MENU_NAME: ${DOCKER_LOCAL_MIRROR_NODE_MENU_NAME}
       DOCKER_LOCAL_MIRROR_NODE_URL: ${DOCKER_LOCAL_MIRROR_NODE_URL}
-
-  web3:
-    image: "${MIRROR_IMAGE_PREFIX}hedera-mirror-web3:${MIRROR_IMAGE_TAG}"
-    container_name: mirror-node-web3
-    mem_swappiness: 0
-    mem_limit: "${MIRROR_WEB3_MEM_LIMIT}"
-    memswap_limit: "${MIRROR_WEB3_MEM_LIMIT}"
-    depends_on:
-      importer:
-        condition: service_started
-      db:
-        condition: service_started
-    networks:
-      - mirror-node
-    environment:
-      HEDERA_MIRROR_WEB3_DB_HOST: db
-      HEDERA_MIRROR_WEB3_EVM_NETWORK: OTHER
-    ports:
-      - "8545:8545"
-    restart: unless-stopped
-    tty: true
-
-  monitor:
-    image: "${MIRROR_IMAGE_PREFIX}hedera-mirror-monitor:${MIRROR_IMAGE_TAG}"
-    container_name: mirror-node-monitor
-    mem_swappiness: 0
-    mem_limit: "${MIRROR_MONITOR_MEM_LIMIT}"
-    memswap_limit: "${MIRROR_MONITOR_MEM_LIMIT}"
-    depends_on:
-      grpc:
-        condition: service_started
-      rest:
-        condition: service_started
-      network-node:
-        condition: service_healthy
-    networks:
-      - mirror-node
-      - network-node-bridge
-    environment:
-      SPRING_CONFIG_ADDITIONAL_LOCATION: "file:/usr/etc/hedera-mirror-monitor/"
-    ports:
-      - "8082:8082"
-    restart: unless-stopped
-    tty: true
-    volumes:
-      - "${MIRROR_NODE_CONFIG_PATH}/compose-network/mirror-node/application.yml:/usr/etc/hedera-mirror-monitor/application.yml"
 
   relay:
     image: "${RELAY_IMAGE_PREFIX}hedera-json-rpc-relay:${RELAY_IMAGE_TAG}"
@@ -477,6 +410,10 @@ networks:
   cloud-storage:
     name: cloud-storage
     driver: bridge
+  docker-tests:
+    name: docker-tests
+    driver: bridge
+
 
 volumes:
   mirror-node-postgres:
